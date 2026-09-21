@@ -1,0 +1,2 @@
+[console_scripts]
+ifc-lca = ifc_lca_analysis.cli:app

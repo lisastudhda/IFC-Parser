@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/ifc_lca_analysis/__init__.py
+src/ifc_lca_analysis/cli.py
+src/ifc_lca_analysis/csv_export.py
+src/ifc_lca_analysis/ifc_parser.py
+src/ifc_lca_analysis/material_mapper.py
+src/ifc_lca_analysis/quantity_extractor.py
+src/ifc_lca_analysis.egg-info/PKG-INFO
+src/ifc_lca_analysis.egg-info/SOURCES.txt
+src/ifc_lca_analysis.egg-info/dependency_links.txt
+src/ifc_lca_analysis.egg-info/entry_points.txt
+src/ifc_lca_analysis.egg-info/requires.txt
+src/ifc_lca_analysis.egg-info/top_level.txt
+tests/test_material_mapper.py

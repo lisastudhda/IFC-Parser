@@ -1,0 +1,224 @@
+Metadata-Version: 2.4
+Name: ifc-lca-analysis
+Version: 0.1.0
+Summary: Extract materials, quantities, and environmental impact data from IFC files and map to Ökobaudat datasets
+Author-email: Your Name <your.email@example.com>
+License: MIT
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: ifcopenshell>=0.7.0
+Requires-Dist: pandas>=1.5.0
+Requires-Dist: requests>=2.28.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: typer>=0.9.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+Requires-Dist: black>=23.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+Requires-Dist: mypy>=1.0; extra == "dev"
+Provides-Extra: docs
+Requires-Dist: sphinx>=6.0; extra == "docs"
+Requires-Dist: sphinx-rtd-theme>=1.2; extra == "docs"
+
+# IFC-LCA-Analysis
+
+Extract materials, quantities, and environmental impact data from IFC files, map to Ökobaudat datasets, and export as CSV for dashboard processing.
+
+## Overview
+
+This tool automates LCA (Life Cycle Assessment) data extraction from IFC (Industry Foundation Classes) models by:
+
+1. **IFC Parsing**: Extract material associations, quantities, and element properties
+2. **Material Mapping**: Match materials to Ökobaudat datasets via classification or name-based mapping
+3. **Quantity Calculation**: Resolve quantities from IfcElementQuantity or geometry fallback
+4. **CSV Export**: Generate structured output for dashboard and further analysis
+
+## Features
+
+### IFC Data Extraction
+- **IfcRelAssociatesMaterial**: Resolve material associations for elements
+- **Material Types**: Handle IfcMaterial (single), IfcMaterialLayerSet, IfcMaterialConstituents
+- **Quantities**: Extract from Qto_*BaseQuantities (GrossVolume, NetSideArea, LayerThickness)
+- **Geometry Fallback**: Calculate volumes from geometry when quantity data is missing
+- **Layer Processing**: Compute volume per material for layered components
+
+### Material Mapping Strategies
+1. **Classification-based**: Use IfcClassificationReference for direct Ökobaudat mapping
+2. **Name-based**: Fuzzy matching of material names to Ökobaudat dataset names (fallback)
+3. **Hybrid**: Combine both strategies for maximum flexibility
+
+### Density Handling
+- Primary: Ökobaudat dataset density
+- Cross-check: Pset_MaterialCommon.MassDensity (optional)
+- Fallback: Manual density input or material library
+
+### Export Options
+- **CSV Format**: Structured data for dashboards
+- **Write-back**: Optionally update IFC elements with LCA results in Pset_EnvironmentalImpactValues
+
+## Installation
+
+```bash
+pip install ifc-lca-analysis
+```
+
+Or install from source with development dependencies:
+
+```bash
+git clone <repository-url>
+cd ifc-lca-analysis
+pip install -e ".[dev]"
+```
+
+## Quick Start
+
+```python
+from ifc_lca_analysis import IfcLCAAnalyzer
+
+# Initialize analyzer
+analyzer = IfcLCAAnalyzer("model.ifc")
+
+# Extract materials and quantities
+materials = analyzer.extract_materials()
+quantities = analyzer.extract_quantities()
+
+# Map to Ökobaudat
+mapped_data = analyzer.map_to_oekobaudat(materials)
+
+# Export to CSV
+analyzer.export_to_csv("lca_results.csv")
+```
+
+Or use the CLI:
+
+```bash
+ifc-lca analyze model.ifc --output results.csv --strategy hybrid
+```
+
+## Data Structure
+
+Expected IFC content for optimal results:
+
+```
+Element
+├── IfcRelAssociatesMaterial
+│   └── IfcMaterial / IfcMaterialLayerSet / IfcMaterialConstituents
+│       └── IfcMaterial.Name (e.g., "Concrete C30/37", "Wood Oak")
+├── IfcElementQuantity (Qto_*BaseQuantities)
+│   ├── GrossVolume / NetVolume
+│   ├── NetSideArea / GrossSideArea
+│   └── Length / Width / Height
+└── IfcProductDefinitionShape (geometry fallback)
+```
+
+## Output Format
+
+CSV columns:
+- Element_Identifier
+- Element_Name
+- Element_Type
+- Material_Name
+- Material_Classification
+- Quantity_Value
+- Quantity_Unit
+- Quantity_Source (Explicit / Calculated / Fallback)
+- Oekobaudat_ID
+- Oekobaudat_Name
+- Density (kg/m³)
+- Mass (kg)
+- EPD_ID (if available)
+- GWP_A1A3 (kg CO₂-eq)
+- GWP_C1C4 (kg CO₂-eq)
+- Timestamp
+
+## Project Structure
+
+```
+ifc-lca-analysis/
+├── src/ifc_lca_analysis/
+│   ├── __init__.py
+│   ├── ifc_parser.py           # IFC data extraction
+│   ├── material_mapper.py       # Material classification & mapping
+│   ├── quantity_extractor.py    # Quantity resolution
+│   ├── oekobaudat_integration.py # Ökobaudat API/data
+│   ├── csv_export.py            # CSV export functionality
+│   └── cli.py                   # CLI interface
+├── tests/
+│   ├── __init__.py
+│   └── test_*.py
+├── pyproject.toml
+└── README.md
+```
+
+## Requirements
+
+- Python >= 3.9
+- ifcopenshell >= 0.7.0
+- pandas >= 1.5.0
+- requests >= 2.28.0
+- pydantic >= 2.0.0
+
+## Development
+
+Install with development dependencies:
+
+```bash
+pip install -e ".[dev]"
+```
+
+Run tests:
+
+```bash
+pytest
+```
+
+Format code:
+
+```bash
+black src/ tests/
+ruff check --fix src/ tests/
+```
+
+Type checking:
+
+```bash
+mypy src/
+```
+
+## Configuration
+
+Create a `config.yaml` or `.env` file for:
+- Ökobaudat API credentials or local database path
+- Default density values
+- Material name mapping rules
+- Output preferences
+
+## Known Limitations
+
+1. IFC models must have proper IfcRelAssociatesMaterial relationships
+2. Quantity extraction requires either Qto_*BaseQuantities or computable geometry
+3. Ökobaudat mapping requires either classification or reasonable material name matching
+4. Layer thickness mapping only works for IfcMaterialLayerSet with explicit thicknesses
+
+## License
+
+MIT
+
+## Contributing
+
+Contributions welcome! Please see CONTRIBUTING.md for guidelines.
+
+## Support
+
+For issues, feature requests, or questions:
+- GitHub Issues: [repository-url]/issues
+- Documentation: [docs-url]
